@@ -1,0 +1,122 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: operation-monitor
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://122.51.174.53:3306/oper?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: oper
+    password: Oper,111
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+  parse-datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://122.51.174.53:3306/oper?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: oper
+    password: Oper,111
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 2
+      min-idle: 2
+      max-active: 10
+      max-wait: 60000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+  mail:
+    host: smtp.163.com
+    port: 465
+    username: your-email@163.com
+    password: your-password
+    protocol: smtps
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            enable: true
+
+# MyBatis-Plus Configuration
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.monitor.module.*.entity
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      insert-strategy: not_null
+      update-strategy: not_null
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# Custom Application Configuration
+monitor:
+  sql:
+    preview-limit: 10
+    max-exec-time: 30000
+    max-rows: 10000
+  notify:
+    retry-times: 3
+    timeout: 5000
+    dingtalk:
+      enabled: false
+      webhook-url: https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN
+      keyword: 监控告警
+    email:
+      enabled: false
+      from: monitor@company.com
+      to: admin@company.com
+    webhook:
+      enabled: false
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.monitor: DEBUG
+    com.monitor.module.sqlparse: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Swagger/Knife4j Configuration
+swagger:
+  enabled: true
+  title: 任务派发数据督办系统
+  description: 任务派发数据督办系统API文档
+  version: 1.0.0
+  contact:
+    name: monitor
+    email: monitor@company.com
+
+# Knife4j Configuration
+knife4j:
+  enable: true
+  setting:
+    language: zh_CN
+    swagger-model-name: 实体类列表

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.monitor.module.execute.mapper.BizExecResultMapper">
+
+    <!-- ResultMap for BizExecResult entity -->
+    <resultMap id="BaseResultMap" type="com.monitor.module.execute.entity.BizExecResult">
+        <id column="id" property="id"/>
+        <result column="task_id" property="taskId"/>
+        <result column="type_id" property="typeId"/>
+        <result column="exec_time" property="execTime"/>
+        <result column="data_count" property="dataCount"/>
+        <result column="metric_data" property="metricData"/>
+        <result column="threshold_result" property="thresholdResult"/>
+        <result column="is_completed" property="isCompleted"/>
+        <result column="complete_reason" property="completeReason"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <!-- Base columns -->
+    <sql id="Base_Column_List">
+        id, task_id, type_id, exec_time, data_count, metric_data, threshold_result,
+        is_completed, complete_reason, create_time
+    </sql>
+
+    <!-- Select by task id -->
+    <select id="selectByTaskId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_exec_result
+        WHERE task_id = #{taskId}
+        ORDER BY exec_time DESC
+    </select>
+
+    <!-- Select latest by task id -->
+    <select id="selectLatestByTaskId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_exec_result
+        WHERE task_id = #{taskId}
+        ORDER BY exec_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- Select by task id with pagination -->
+    <select id="selectPageByTaskId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_exec_result
+        WHERE task_id = #{taskId}
+        ORDER BY exec_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- Select uncompleted results -->
+    <select id="selectUncompletedResults" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_exec_result
+        WHERE is_completed = 0
+        ORDER BY exec_time ASC
+    </select>
+
+    <!-- Select by time range -->
+    <select id="selectByTimeRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_exec_result
+        WHERE task_id = #{taskId}
+          AND exec_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY exec_time DESC
+    </select>
+
+    <!-- Select aggregated metrics -->
+    <select id="selectAggregatedMetrics" resultType="java.util.Map">
+        SELECT
+            task_id,
+            COUNT(*) as total_count,
+            AVG(data_count) as avg_data_count,
+            MIN(exec_time) as first_exec_time,
+            MAX(exec_time) as last_exec_time
+        FROM biz_exec_result
+        WHERE task_id = #{taskId}
+          AND exec_time BETWEEN #{startTime} AND #{endTime}
+        GROUP BY task_id
+    </select>
+
+    <!-- Update completion status -->
+    <update id="updateCompletionStatus">
+        UPDATE biz_exec_result
+        SET is_completed = #{isCompleted},
+            complete_reason = #{completeReason}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Count by task id -->
+    <select id="countByTaskId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM biz_exec_result
+        WHERE task_id = #{taskId}
+    </select>
+
+    <!-- Delete old results -->
+    <delete id="deleteOldResults">
+        DELETE FROM biz_exec_result
+        WHERE create_time &lt; #{beforeTime}
+    </delete>
+
+</mapper>

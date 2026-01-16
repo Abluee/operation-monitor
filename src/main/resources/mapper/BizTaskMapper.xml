@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.monitor.module.task.mapper.BizTaskMapper">
+
+    <!-- ResultMap for BizTask entity -->
+    <resultMap id="BaseResultMap" type="com.monitor.module.task.entity.BizTask">
+        <id column="id" property="id"/>
+        <result column="type_id" property="typeId"/>
+        <result column="type_name" property="typeName"/>
+        <result column="task_name" property="taskName"/>
+        <result column="description" property="description"/>
+        <result column="threshold_rules" property="thresholdRules" typeHandler="org.apache.ibatis.type.ObjectTypeHandler"/>
+        <result column="complete_rules" property="completeRules" typeHandler="org.apache.ibatis.type.ObjectTypeHandler"/>
+        <result column="query_condition" property="queryCondition" typeHandler="org.apache.ibatis.type.ObjectTypeHandler"/>
+        <result column="formula" property="formula"/>
+        <result column="status" property="status"/>
+        <result column="last_exec_time" property="lastExecTime"/>
+        <result column="next_exec_time" property="nextExecTime"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="assignee_id" property="assigneeId"/>
+        <result column="group_id" property="groupId"/>
+        <result column="source_data" property="sourceData"/>
+    </resultMap>
+
+    <!-- ResultMap with type info (通过association映射到BizTask.typeName) -->
+    <resultMap id="TaskWithTypeResultMap" extends="BaseResultMap" type="com.monitor.module.task.entity.BizTask">
+        <association property="bizType" javaType="com.monitor.module.type.entity.BizType">
+            <id column="type_id" property="id"/>
+            <result column="type_name" property="typeName"/>
+        </association>
+    </resultMap>
+
+    <!-- ResultMap直接映射typeName到BizTask -->
+    <resultMap id="TaskResultMap" extends="BaseResultMap" type="com.monitor.module.task.entity.BizTask">
+        <result column="type_name" property="typeName"/>
+    </resultMap>
+
+    <!-- Base columns -->
+    <sql id="Base_Column_List">
+        id, type_id, task_name, description, threshold_rules, complete_rules,
+        query_condition, formula, status, last_exec_time, next_exec_time, create_user,
+        create_time, update_user, update_time, assignee_id, group_id, source_data
+    </sql>
+
+    <!-- Select by status -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_task
+        WHERE status = #{status}
+        ORDER BY next_exec_time ASC
+    </select>
+
+    <!-- Select by assignee -->
+    <select id="selectByAssignee" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_task
+        WHERE assignee_id = #{assigneeId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Select by type id -->
+    <select id="selectByTypeId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_task
+        WHERE type_id = #{typeId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Select tasks to execute -->
+    <select id="selectTasksToExecute" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_task
+        WHERE status = 1
+          AND next_exec_time &lt;= NOW()
+        ORDER BY next_exec_time ASC
+    </select>
+
+    <!-- Select task with type info -->
+    <select id="selectByIdWithType" resultMap="TaskWithTypeResultMap">
+        SELECT t.id, t.type_id, t.task_name, t.description, t.threshold_rules,
+               t.complete_rules, t.query_condition, t.formula, t.status, t.last_exec_time,
+               t.next_exec_time, t.create_user, t.create_time, t.update_user, t.update_time,
+               t.assignee_id, t.group_id, t.source_data,
+               bt.type_name
+        FROM biz_task t
+        LEFT JOIN biz_type bt ON t.type_id = bt.id
+        WHERE t.id = #{id}
+    </select>
+
+    <!-- Select all tasks with typeName -->
+    <select id="selectAllWithType" resultMap="TaskResultMap">
+        SELECT t.id, t.type_id, t.task_name, t.description, t.threshold_rules,
+               t.complete_rules, t.query_condition, t.formula, t.status, t.last_exec_time,
+               t.next_exec_time, t.create_user, t.create_time, t.update_user, t.update_time,
+               t.assignee_id, t.group_id, t.source_data,
+               bt.type_name
+        FROM biz_task t
+        LEFT JOIN biz_type bt ON t.type_id = bt.id
+        ORDER BY t.create_time DESC
+    </select>
+
+    <!-- Select list with typeName and conditions -->
+    <select id="selectListWithType" resultMap="TaskResultMap">
+        SELECT t.id, t.type_id, t.task_name, t.description, t.threshold_rules,
+               t.complete_rules, t.query_condition, t.formula, t.status, t.last_exec_time,
+               t.next_exec_time, t.create_user, t.create_time, t.update_user, t.update_time,
+               t.assignee_id, t.group_id, t.source_data,
+               bt.type_name
+        FROM biz_task t
+        LEFT JOIN biz_type bt ON t.type_id = bt.id
+        <where>
+            <if test="typeId != null">
+                AND t.type_id = #{typeId}
+            </if>
+            <if test="status != null">
+                AND t.status = #{status}
+            </if>
+            <if test="taskName != null and taskName != ''">
+                AND t.task_name LIKE CONCAT('%', #{taskName}, '%')
+            </if>
+            <if test="assigneeId != null">
+                AND t.assignee_id = #{assigneeId}
+            </if>
+            <if test="groupId != null">
+                AND t.group_id = #{groupId}
+            </if>
+            <!-- filter 过滤条件 - 支持两种格式: 
+                 1. {field: 'api', value: 'xxx'} 标准格式
+                 2. {'total': [min, max]} 简化格式（字段名直接作为key）
+                 范围数组中的null表示不限制该边界 -->
+            <if test="filter != null and filter.size() > 0">
+                AND
+                <foreach collection="filter" item="f" separator=" AND ">
+                    <choose>
+                        <when test="f.field == 'api'">
+                            JSON_UNQUOTE(JSON_EXTRACT(t.source_data, '$.api')) LIKE CONCAT('%', #{f.value}, '%')
+                        </when>
+                        <when test="f.field == 'date'">
+                            <trim prefix="(" suffix=")" prefixOverrides="AND">
+                                <if test="f.value[0] != null">
+                                    AND JSON_UNQUOTE(JSON_EXTRACT(t.source_data, '$.date')) &gt;= #{f.value[0]}
+                                </if>
+                                <if test="f.value[1] != null">
+                                    AND JSON_UNQUOTE(JSON_EXTRACT(t.source_data, '$.date')) &lt;= #{f.value[1]}
+                                </if>
+                            </trim>
+                        </when>
+                        <when test="f.field == 'total'">
+                            <trim prefix="(" suffix=")" prefixOverrides="AND">
+                                <if test="f.value[0] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.total') AS DECIMAL) &gt;= #{f.value[0]}
+                                </if>
+                                <if test="f.value[1] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.total') AS DECIMAL) &lt;= #{f.value[1]}
+                                </if>
+                            </trim>
+                        </when>
+                        <when test="f.field == 'slowAvg'">
+                            <trim prefix="(" suffix=")" prefixOverrides="AND">
+                                <if test="f.value[0] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.slow_avg') AS DECIMAL) &gt;= #{f.value[0]}
+                                </if>
+                                <if test="f.value[1] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.slow_avg') AS DECIMAL) &lt;= #{f.value[1]}
+                                </if>
+                            </trim>
+                        </when>
+                        <when test="f.field == 'slowRate'">
+                            <trim prefix="(" suffix=")" prefixOverrides="AND">
+                                <if test="f.value[0] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.slow_rate') AS DECIMAL) &gt;= #{f.value[0]}
+                                </if>
+                                <if test="f.value[1] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.slow_rate') AS DECIMAL) &lt;= #{f.value[1]}
+                                </if>
+                            </trim>
+                        </when>
+                        <when test="f.field == 'slowCount'">
+                            <trim prefix="(" suffix=")" prefixOverrides="AND">
+                                <if test="f.value[0] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.slow_count') AS DECIMAL) &gt;= #{f.value[0]}
+                                </if>
+                                <if test="f.value[1] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.slow_count') AS DECIMAL) &lt;= #{f.value[1]}
+                                </if>
+                            </trim>
+                        </when>
+                        <when test="f.field == 'totalAvg'">
+                            <trim prefix="(" suffix=")" prefixOverrides="AND">
+                                <if test="f.value[0] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.total_avg') AS DECIMAL) &gt;= #{f.value[0]}
+                                </if>
+                                <if test="f.value[1] != null">
+                                    AND CAST(JSON_EXTRACT(t.source_data, '$.total_avg') AS DECIMAL) &lt;= #{f.value[1]}
+                                </if>
+                            </trim>
+                        </when>
+                    </choose>
+                </foreach>
+            </if>
+        </where>
+        ORDER BY t.create_time DESC
+    </select>
+
+    <!-- Update next execution time -->
+    <update id="updateNextExecTime">
+        UPDATE biz_task
+        SET next_exec_time = #{nextExecTime},
+            update_time = NOW()
+        WHERE id = #{taskId}
+    </update>
+
+</mapper>

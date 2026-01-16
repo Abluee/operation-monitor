@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.monitor.module.type.mapper.BizTypeMapper">
+
+    <!-- ResultMap for BizType entity -->
+    <resultMap id="BaseResultMap" type="com.monitor.module.type.entity.BizType">
+        <id column="id" property="id"/>
+        <result column="type_name" property="typeName"/>
+        <result column="description" property="description"/>
+        <result column="sql_content" property="sqlContent"/>
+        <result column="field_config" property="fieldConfig" typeHandler="org.apache.ibatis.type.ObjectTypeHandler"/>
+        <result column="verify_config" property="verifyConfig" typeHandler="org.apache.ibatis.type.ObjectTypeHandler"/>
+        <result column="formula" property="formula"/>
+        <result column="status" property="status"/>
+        <result column="create_user" property="createUser"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user" property="updateUser"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- Base columns -->
+    <sql id="Base_Column_List">
+        id, type_name, description, sql_content, field_config, verify_config,
+        formula, status, create_user, create_time, update_user, update_time
+    </sql>
+
+    <!-- Select enabled types -->
+    <select id="selectEnabledTypes" resultType="java.util.Map">
+        SELECT id, type_name as typeName
+        FROM biz_type
+        WHERE status = 1
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

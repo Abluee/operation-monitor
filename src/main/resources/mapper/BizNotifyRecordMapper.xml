@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.monitor.module.notify.mapper.BizNotifyRecordMapper">
+
+    <!-- ResultMap for BizNotifyRecord entity -->
+    <resultMap id="BaseResultMap" type="com.monitor.module.notify.entity.BizNotifyRecord">
+        <id column="id" property="id"/>
+        <result column="task_id" property="taskId"/>
+        <result column="task_name" property="taskName"/>
+        <result column="channel" property="channel"/>
+        <result column="notify_type" property="notifyType"/>
+        <result column="content" property="content"/>
+        <result column="status" property="status"/>
+        <result column="error_msg" property="errorMsg"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="send_time" property="sendTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- Base columns -->
+    <sql id="Base_Column_List">
+        id, task_id, task_name, channel, notify_type, content, status, error_msg,
+        retry_count, send_time, create_time, update_time
+    </sql>
+
+    <!-- Select by task id -->
+    <select id="selectByTaskId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_notify_record
+        WHERE task_id = #{taskId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Select failed records for retry -->
+    <select id="selectFailedRecordsForRetry" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_notify_record
+        WHERE task_id = #{taskId}
+          AND status = #{status}
+          AND retry_count &lt; #{maxRetryCount}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- Select by status with pagination -->
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_notify_record
+        WHERE status = #{status}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- Select pending records -->
+    <select id="selectPendingRecords" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_notify_record
+        WHERE status = 0
+        ORDER BY create_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Select by channel -->
+    <select id="selectByChannel" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_notify_record
+        WHERE channel = #{channel}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Select by notify type -->
+    <select id="selectByNotifyType" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM biz_notify_record
+        WHERE notify_type = #{notifyType}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Update status -->
+    <update id="updateStatus">
+        UPDATE biz_notify_record
+        SET status = #{status},
+            error_msg = #{errorMsg},
+            send_time = #{sendTime},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- Increment retry count -->
+    <update id="incrementRetryCount">
+        UPDATE biz_notify_record
+        SET retry_count = retry_count + 1,
+            status = 3,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- Mark as failed -->
+    <update id="markAsFailed">
+        UPDATE biz_notify_record
+        SET status = 2,
+            error_msg = #{errorMsg},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- Mark as sent -->
+    <update id="markAsSent">
+        UPDATE biz_notify_record
+        SET status = 1,
+            send_time = NOW(),
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- Count by status -->
+    <select id="countByStatus" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM biz_notify_record
+        WHERE status = #{status}
+    </select>
+
+    <!-- Count failed records by task id -->
+    <select id="countFailedByTaskId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM biz_notify_record
+        WHERE task_id = #{taskId}
+          AND status = 2
+    </select>
+
+    <!-- Delete old records -->
+    <delete id="deleteOldRecords">
+        DELETE FROM biz_notify_record
+        WHERE create_time &lt; #{beforeTime}
+    </delete>
+
+</mapper>
