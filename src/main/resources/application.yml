@@ -81,6 +81,12 @@ monitor:
     preview-limit: 10
     max-exec-time: 30000
     max-rows: 10000
+  llm:
+    base-url: https://api.xiaomimimo.com
+    api-key: sk-cjie8529bumqaac6z0qe0xulx1c3j663nvsu4zqxx4ojtwoe
+    model: mimo-v2-flash
+    timeout: 60000
+    max-tokens: 2000
   notify:
     retry-times: 3
     timeout: 5000
