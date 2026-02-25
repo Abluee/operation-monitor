@@ -27,8 +27,7 @@ CREATE TABLE sys_group (
     update_user BIGINT COMMENT '更新用户ID',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除',
-    UNIQUE KEY uk_group_code (group_code),
-    KEY idx_status (status)
+    UNIQUE KEY uk_group_code (group_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='小组表';
 
 -- ============================================================
@@ -37,9 +36,11 @@ CREATE TABLE sys_group (
 CREATE TABLE sys_user (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     username VARCHAR(50) NOT NULL COMMENT '用户名',
+    password VARCHAR(100) COMMENT '密码（加密后）',
     real_name VARCHAR(100) COMMENT '真实姓名',
     email VARCHAR(200) COMMENT '邮箱',
     phone VARCHAR(20) COMMENT '手机号',
+    avatar VARCHAR(500) COMMENT '头像URL',
     group_id BIGINT COMMENT '所属小组ID',
     status TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
     create_user BIGINT COMMENT '创建用户ID',
@@ -47,9 +48,7 @@ CREATE TABLE sys_user (
     update_user BIGINT COMMENT '更新用户ID',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除',
-    UNIQUE KEY uk_username (username),
-    KEY idx_group_id (group_id),
-    KEY idx_status (status)
+    UNIQUE KEY uk_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='用户表';
 
 -- ============================================================
@@ -68,9 +67,7 @@ CREATE TABLE biz_type (
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_user BIGINT COMMENT '更新用户ID',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除',
-    KEY idx_status (status),
-    KEY idx_create_time (create_time)
+    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='业务类型表';
 
 -- ============================================================
@@ -97,28 +94,22 @@ CREATE TABLE biz_task (
     assignee_id BIGINT COMMENT '任务负责人ID',
     group_id BIGINT COMMENT '任务负责组ID',
     source_data JSON COMMENT '监控源数据（如api_slow_stat、biz_metrics_stat等表的数据）',
-    UNIQUE KEY uk_task_code (task_code),
-    KEY idx_type_id (type_id),
-    KEY idx_status (status),
-    KEY idx_assignee_id (assignee_id),
-    KEY idx_group_id (group_id),
-    KEY idx_next_exec_time (next_exec_time),
-    KEY idx_create_time (create_time)
+    UNIQUE KEY uk_task_code (task_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='任务表';
 
 -- ============================================================
 -- Table: biz_task_assignee (任务-负责人关联表)
+-- 用于支持一个任务多个负责人/关注者
 -- ============================================================
 CREATE TABLE biz_task_assignee (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     task_id BIGINT NOT NULL COMMENT '任务ID',
     user_id BIGINT NOT NULL COMMENT '用户ID',
     assignee_type TINYINT DEFAULT 1 COMMENT '关联类型：1-负责人，2-关注者',
+    is_main TINYINT DEFAULT 0 COMMENT '是否主要负责人：0-否，1-是',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除',
-    UNIQUE KEY uk_task_user (task_id, user_id),
-    KEY idx_task_id (task_id),
-    KEY idx_user_id (user_id)
+    UNIQUE KEY uk_task_user (task_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='任务-负责人关联表';
 
 -- ============================================================
@@ -136,12 +127,7 @@ CREATE TABLE biz_task_log (
     error_msg TEXT COMMENT '错误信息',
     duration_ms INT COMMENT '执行耗时（毫秒）',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除',
-    KEY idx_task_id (task_id),
-    KEY idx_type_id (type_id),
-    KEY idx_exec_time (exec_time),
-    KEY idx_exec_status (exec_status),
-    KEY idx_trigger_type (trigger_type)
+    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='任务执行日志表';
 
 -- ============================================================
@@ -158,11 +144,7 @@ CREATE TABLE biz_exec_result (
     is_completed TINYINT DEFAULT 0 COMMENT '是否完成：0-未完成，1-已完成',
     complete_reason VARCHAR(500) COMMENT '完成原因',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除',
-    KEY idx_task_id (task_id),
-    KEY idx_type_id (type_id),
-    KEY idx_exec_time (exec_time),
-    KEY idx_is_completed (is_completed)
+    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='执行结果表';
 
 -- ============================================================
@@ -181,29 +163,8 @@ CREATE TABLE biz_notify_record (
     send_time DATETIME COMMENT '发送时间',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除',
-    KEY idx_task_id (task_id),
-    KEY idx_channel (channel),
-    KEY idx_notify_type (notify_type),
-    KEY idx_status (status),
-    KEY idx_send_time (send_time),
-    KEY idx_create_time (create_time)
+    deleted TINYINT DEFAULT 0 COMMENT '删除标识：0-未删除，1-已删除'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='通知记录表';
-
--- ============================================================
--- Add Foreign Key Constraints (Optional)
--- ============================================================
--- ALTER TABLE biz_task ADD CONSTRAINT fk_task_type FOREIGN KEY (type_id) REFERENCES biz_type(id);
--- ALTER TABLE biz_task ADD CONSTRAINT fk_task_assignee FOREIGN KEY (assignee_id) REFERENCES sys_user(id);
--- ALTER TABLE biz_task ADD CONSTRAINT fk_task_group FOREIGN KEY (group_id) REFERENCES sys_group(id);
--- ALTER TABLE biz_task_log ADD CONSTRAINT fk_log_task FOREIGN KEY (task_id) REFERENCES biz_task(id);
--- ALTER TABLE biz_task_log ADD CONSTRAINT fk_log_type FOREIGN KEY (type_id) REFERENCES biz_type(id);
--- ALTER TABLE biz_exec_result ADD CONSTRAINT fk_result_task FOREIGN KEY (task_id) REFERENCES biz_task(id);
--- ALTER TABLE biz_exec_result ADD CONSTRAINT fk_result_type FOREIGN KEY (type_id) REFERENCES biz_type(id);
--- ALTER TABLE biz_notify_record ADD CONSTRAINT fk_notify_task FOREIGN KEY (task_id) REFERENCES biz_task(id);
--- ALTER TABLE biz_task_assignee ADD CONSTRAINT fk_assignee_task FOREIGN KEY (task_id) REFERENCES biz_task(id);
--- ALTER TABLE biz_task_assignee ADD CONSTRAINT fk_assignee_user FOREIGN KEY (user_id) REFERENCES sys_user(id);
--- ALTER TABLE sys_user ADD CONSTRAINT fk_user_group FOREIGN KEY (group_id) REFERENCES sys_group(id);
 
 -- ============================================================
 -- Table: api_slow_stat (慢接口统计表)
@@ -219,9 +180,7 @@ CREATE TABLE api_slow_stat (
     slow_rate DECIMAL(5,2) COMMENT '慢请求占比(%)',
     total_avg DECIMAL(10,2) COMMENT '平均响应时间(ms)',
     slow_avg DECIMAL(10,2) COMMENT '慢请求平均耗时(ms)',
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    KEY idx_api (api),
-    KEY idx_date (date)
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='慢接口统计表';
 
 -- ============================================================
@@ -240,8 +199,5 @@ CREATE TABLE biz_metrics_stat (
     threshold_max DECIMAL(15,2) COMMENT '最大阈值',
     status TINYINT DEFAULT 1 COMMENT '状态：0-异常，1-正常',
     unit VARCHAR(20) COMMENT '单位',
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    KEY idx_metric_name (metric_name),
-    KEY idx_category (category),
-    KEY idx_date (date)
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='业务指标统计表';
